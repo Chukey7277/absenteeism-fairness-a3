@@ -1,0 +1,29 @@
+{
+  "purpose": "Early, supportive outreach for employees at risk of heavy absenteeism.",
+  "intended_user": "HR analyst or team lead",
+  "decision_supported": "Prioritize check-ins and resources (not disciplinary action).",
+  "data_window": "Historical attendance dataset from Assignment 2; refreshed monthly.",
+  "label_definition": "Heavy absentee = top 25% of monthly absence hours.",
+  "model": {
+    "type": "LogisticRegression",
+    "calibrated": true,
+    "threshold": 0.48,
+    "preprocessing": ["impute", "one-hot", "scale"]
+  },
+  "fairness": {
+    "protected_attribute": "Age (>=40 as protected group)",
+    "mitigations": ["drop_age_feature", "reweight_by_AxY", "probability_calibration"],
+    "metrics": ["SPD", "EOD", "FPR_diff"],
+    "interpretation": "Values closer to 0 indicate reduced disparity."
+  },
+  "limitations": [
+    "Not for hiring/firing/pay decisions.",
+    "Patterns may shift if policies or population change.",
+    "Cannot infer reasons for absence."
+  ],
+  "use_guidance": [
+    "Use predictions as signals for supportive outreach.",
+    "Confirm with additional context and policy.",
+    "Audit performance and fairness on each update."
+  ]
+}
