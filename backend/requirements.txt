@@ -3,7 +3,8 @@ uvicorn[standard]
 pydantic
 numpy
 pandas
-scikit-learn
+scikit-learn==1.4.2
 joblib
 requests
+fastapi
 
