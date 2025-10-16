@@ -25,19 +25,32 @@ def _load_artifacts():
         mpath = os.path.join(ARTIF_DIR, "model_final.pkl")
 
         if os.path.exists(mpath):
-            MODEL = joblib.load(mpath)
-            print(f"✅ Model loaded: {type(MODEL)}")
+            raw_model = joblib.load(mpath)
+            print(f"✅ Loaded raw model: {type(raw_model)}")
 
-            # Extract preprocessor if possible
-            if hasattr(MODEL, "estimator") and hasattr(MODEL.estimator, "named_steps"):
-                PREPROC = MODEL.estimator.named_steps.get("pre", None)
-                print("✅ Extracted preprocessor from calibrated pipeline.")
-            elif hasattr(MODEL, "named_steps"):
+            # If it's a CalibratedClassifierCV, extract its fitted base estimator
+            if hasattr(raw_model, "calibrated_classifiers_"):
+               inner = raw_model.calibrated_classifiers_[0]
+              # Handle both attribute styles
+            if hasattr(inner, "base_estimator"):
+              MODEL = inner.base_estimator
+            elif hasattr(inner, "estimator"):
+              MODEL = inner.estimator
+            else:
+              raise AttributeError("No estimator found inside calibrated_classifiers_[0]")
+            CALIBRATED = True
+            print(f"✅ Extracted fitted pipeline: {type(MODEL)}")
+
+            # Try to get preprocessor if available
+            if hasattr(MODEL, "named_steps"):
                 PREPROC = MODEL.named_steps.get("pre", None)
-                print("✅ Model is a simple pipeline.")
+                print("✅ Found preprocessor in pipeline.")
+            elif hasattr(MODEL, "estimator") and hasattr(MODEL.estimator, "named_steps"):
+                PREPROC = MODEL.estimator.named_steps.get("pre", None)
+                print("✅ Extracted preprocessor from nested estimator.")
             else:
                 PREPROC = None
-                print("⚠️ No preprocessor found inside model.")
+                print("⚠️ No preprocessor found in model.")
         else:
             print("❌ model_final.pkl not found in artifacts/")
             MODEL = None
@@ -57,9 +70,7 @@ def _load_artifacts():
     else:
         THRESHOLD = 0.5
 
-    # Check calibration flag
-    CALIBRATED = hasattr(MODEL, "calibrated_classifiers") or isinstance(MODEL, object)
-    print(f"Loaded model calibrated={CALIBRATED}, threshold={THRESHOLD}")
+    print(f"Model loaded calibrated={CALIBRATED}, threshold={THRESHOLD}")
 
 
 # Load once at startup
@@ -163,35 +174,57 @@ def _explain_linear(proba: float) -> List[str]:
 
 @app.post("/predict", response_model=PredictResponse)
 def predict(req: PredictRequest):
+    import numpy as np
+    import warnings
+    warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
+
     if MODEL is None:
         return PredictResponse(
-            proba=0.0, label=0, threshold=THRESHOLD,
+            proba=0.0,
+            label=0,
+            threshold=THRESHOLD,
             calibrated=CALIBRATED,
             explanations=["Model not loaded. Add artifacts."],
             model_ready=False
         )
 
-    # Build a 1-row DataFrame from the incoming features
-    X_raw = pd.DataFrame([req.features])
-
-    # Drop fairness-sensitive columns (age)
-    X_raw = _drop_fairness_columns(X_raw)
-
     try:
-        import numpy as np
+        X_raw = pd.DataFrame([req.features])
+        X_raw = _drop_fairness_columns(X_raw)
 
-        # 💡 Main change: don’t manually transform; let the pipeline handle it
-        proba = float(MODEL.predict_proba(X_raw)[:, 1][0])
+        # ✅ Step 1: Try using the first calibrated classifier (fitted one)
+        try:
+            if hasattr(MODEL, "calibrated_classifiers_"):
+                inner = MODEL.calibrated_classifiers_[0].base_estimator
+                proba = float(inner.predict_proba(X_raw)[:, 1][0])
+            else:
+                proba = float(MODEL.predict_proba(X_raw)[:, 1][0])
+        except Exception as e1:
+            # ✅ Step 2: fallback to direct estimator
+            if hasattr(MODEL, "estimator") and hasattr(MODEL.estimator, "predict_proba"):
+                proba = float(MODEL.estimator.predict_proba(X_raw)[:, 1][0])
+            else:
+                raise HTTPException(status_code=400, detail=f"Prediction failed: {e1}")
 
         label = int(proba >= THRESHOLD)
-        explanations = _explain_linear(proba)
+
+        try:
+            explanations = _explain_linear(proba)
+        except Exception:
+            explanations = ["Explanations unavailable; showing probability only."]
 
         return PredictResponse(
-            proba=proba, label=label, threshold=THRESHOLD,
-            calibrated=CALIBRATED, explanations=explanations,
+            proba=proba,
+            label=label,
+            threshold=THRESHOLD,
+            calibrated=CALIBRATED,
+            explanations=explanations,
             model_ready=True
         )
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Prediction failed: {e}")
+
+
+
 

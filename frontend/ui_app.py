@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-BACKEND_URL = "http://127.0.0.1:8000"  # 👈 Make sure backend is running here
+BACKEND_URL = "https://absenteeism-fairness-a3.onrender.com"  # 👈 Make sure backend is running here
 
 st.title("📉 Absenteeism Risk — HR Support Dashboard")
 st.markdown(
