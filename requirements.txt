@@ -1,8 +1,15 @@
+# === Backend (FastAPI + ML stack) ===
 fastapi==0.115.2
 uvicorn==0.30.6
 pydantic==2.9.2
 pandas==2.2.3
 numpy==2.1.1
-scikit-learn==1.5.2
 joblib==1.4.2
+scikit-learn==1.5.2
 
+# === Frontend (Streamlit + API requests) ===
+streamlit==1.39.0
+requests==2.32.3
+
+# === Deployment utilities ===
+python-multipart==0.0.9
