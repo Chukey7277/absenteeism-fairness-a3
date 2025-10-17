@@ -11,9 +11,9 @@ Developed as part of **CS698H — Human-Centered AI, IIT Kanpur**.
 
 | Component | Link |
 |----------|------|
-| **Frontend (Streamlit UI)** | https://YOUR-HUGGINGFACE-SPACE |
-| **Backend (FastAPI API)** | https://absenteeism-fairness-a3-1.onrender.com |
-| **GitHub Repository** | https://github.com/Chukey7277/absenteeism-fairness-a3 |
+| **Frontend (Streamlit UI)** | [https://YOUR-HUGGINGFACE-SPACE](https://huggingface.co/spaces/chukey7277/absenteeism-fairness-ui) |
+| **Backend (FastAPI API)** | [https://absenteeism-fairness-a3-1.onrender.com](https://absenteeism-fairness-a3-1.onrender.com) |
+| **GitHub Repository** | [https://github.com/Chukey7277/absenteeism-fairness-a3](https://github.com/Chukey7277/absenteeism-fairness-a3) |
 
 ---
 
@@ -22,10 +22,10 @@ Developed as part of **CS698H — Human-Centered AI, IIT Kanpur**.
 You can directly use the UI hosted on Hugging Face:
 
 1. **Ensure backend is live** — visit  
-   https://absenteeism-fairness-a3-1.onrender.com/health   
+   https://absenteeism-fairness-a3-1.onrender.com  
    You should see something like:
    ```json
-   {"status":"ok","model_ready":true}
+   {"detail":"Not Found"}
 
 Open the frontend:
 https://YOUR-HUGGINGFACE-SPACE
